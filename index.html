@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070b18" />
+  <title>Pulse Weaver — Neon Orbit Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">✦</span><span>PULSE <b>WEAVER</b></span></div>
+      <div class="status"><span class="live-dot"></span> SIGNAL ONLINE</div>
+      <button class="icon-btn" id="pauseBtn" aria-label="Pause game">Ⅱ</button>
+    </header>
+
+    <section class="game-wrap">
+      <aside class="side-panel left-panel">
+        <div class="eyebrow">CURRENT RUN</div>
+        <div class="big-stat" id="score">000000</div>
+        <div class="stat-label">SCORE</div>
+        <div class="mini-grid">
+          <div><span>BEST</span><strong id="best">000000</strong></div>
+          <div><span>LEVEL</span><strong id="level">01</strong></div>
+        </div>
+        <div class="meter-label"><span>CORE INTEGRITY</span><span id="integrityText">100%</span></div>
+        <div class="meter"><i id="integrityBar"></i></div>
+        <div class="tip"><span class="tip-icon">⌁</span><p>Collect cyan sparks to weave your orbit. Near misses charge your next pulse.</p></div>
+      </aside>
+
+      <div class="board-frame">
+        <canvas id="gameCanvas" aria-label="Pulse Weaver game board"></canvas>
+        <div class="canvas-hud"><span id="waveLabel">WAVE 01</span><span id="comboLabel">COMBO ×1</span></div>
+        <div class="overlay" id="startOverlay">
+          <div class="overlay-kicker">A SIGNAL HAS FOUND YOU</div>
+          <h1>WEAVE THE<br><em>UNKNOWN.</em></h1>
+          <p>Move the core. Catch the sparks.<br>Build a pulse before the hunters close in.</p>
+          <button class="primary-btn" id="startBtn">BEGIN TRANSMISSION <span>→</span></button>
+          <small>WASD / ARROW KEYS / MOUSE / TOUCH</small>
+        </div>
+        <div class="overlay hidden" id="pauseOverlay">
+          <div class="overlay-kicker">SIGNAL FROZEN</div><h2>PAUSED</h2><p>Your orbit is waiting.</p>
+          <button class="primary-btn" id="resumeBtn">RESUME <span>→</span></button>
+        </div>
+        <div class="overlay hidden" id="gameOverOverlay">
+          <div class="overlay-kicker">SIGNAL LOST</div><h2>THE HUNTERS<br><em>FOUND YOU.</em></h2>
+          <p>Final score <strong id="finalScore">0</strong></p>
+          <button class="primary-btn" id="restartBtn">TRY AGAIN <span>↻</span></button>
+        </div>
+      </div>
+
+      <aside class="side-panel right-panel">
+        <div class="eyebrow">WEAVE STATUS</div>
+        <div class="pulse-ring"><span id="pulseNumber">0</span><small>PULSE</small></div>
+        <div class="charge-label"><span>PULSE CHARGE</span><span id="chargeText">0 / 5</span></div>
+        <div class="meter violet"><i id="chargeBar"></i></div>
+        <div class="legend"><div><i class="dot cyan"></i>SPARK</div><div><i class="dot coral"></i>HUNTER</div><div><i class="dot white"></i>CORE</div></div>
+        <div class="controls"><span>QUICK CONTROLS</span><p><kbd>SPACE</kbd> Pulse burst</p><p><kbd>ESC</kbd> Pause run</p></div>
+      </aside>
+    </section>
+
+    <footer><span>© 2026 PULSE LABS</span><span>EVERY ORBIT LEAVES A TRACE</span><span>v1.0.0</span></footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
