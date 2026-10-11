@@ -24,6 +24,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -130,14 +131,20 @@ public class MainActivity extends Activity {
 
     private void downloadApk(String downloadUrl) {
         File apk = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "neon-orbit-update.apk");
+        File partialApk = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "neon-orbit-update.apk.part");
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(downloadUrl).openConnection();
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(15000);
+            connection.setInstanceFollowRedirects(true);
             connection.connect();
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new Exception("Update download returned HTTP " + connection.getResponseCode());
+            }
             int total = connection.getContentLength();
             long downloaded = 0;
-            try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(apk)) {
+            if (partialApk.exists()) partialApk.delete();
+            try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(partialApk)) {
                 byte[] buffer = new byte[8192];
                 int read;
                 while ((read = input.read(buffer)) != -1) {
@@ -151,9 +158,22 @@ public class MainActivity extends Activity {
             } finally {
                 connection.disconnect();
             }
+            if (partialApk.length() < 4 || !isZipApk(partialApk)) {
+                partialApk.delete();
+                throw new Exception("The update URL did not return a valid APK file");
+            }
+            if (apk.exists()) apk.delete();
+            if (!partialApk.renameTo(apk)) throw new Exception("Could not prepare the APK installer file");
             mainHandler.post(() -> installDownloadedApk(apk));
         } catch (Exception error) {
+            if (partialApk.exists()) partialApk.delete();
             mainHandler.post(() -> showDownloadError(error.getMessage()));
+        }
+    }
+
+    private boolean isZipApk(File file) throws Exception {
+        try (FileInputStream input = new FileInputStream(file)) {
+            return input.read() == 'P' && input.read() == 'K';
         }
     }
 
@@ -177,7 +197,7 @@ public class MainActivity extends Activity {
         if (downloadDialog != null) downloadDialog.dismiss();
         new AlertDialog.Builder(this)
                 .setTitle("Update failed")
-                .setMessage("The update could not be downloaded. Please try again later.")
+                .setMessage("The update link did not provide a valid APK. Upload the real APK at the configured download URL, then try again.")
                 .setPositiveButton("OK", null)
                 .show();
     }
