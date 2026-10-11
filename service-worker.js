@@ -1,4 +1,5 @@
-const CACHE_NAME = 'pulse-weaver-v2';
+// Bump this whenever an app-shell file changes so installed users receive the fix.
+const CACHE_NAME = 'pulse-weaver-v3';
 const APP_SHELL = [
   './',
   './index.html',

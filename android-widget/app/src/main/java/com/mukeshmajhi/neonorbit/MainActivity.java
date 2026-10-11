@@ -31,6 +31,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.Locale;
 
 public class MainActivity extends Activity {
     public static final String GAME_URL = "https://mukeshmajhi.com.np/";
@@ -41,6 +42,8 @@ public class MainActivity extends Activity {
     private AlertDialog downloadDialog;
     private ProgressBar downloadProgress;
     private TextView downloadStatus;
+    private volatile HttpURLConnection activeDownload;
+    private volatile boolean downloadCancelled;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -105,6 +108,11 @@ public class MainActivity extends Activity {
     }
 
     private void startUpdateDownload(String downloadUrl) {
+        if (downloadUrl == null || !downloadUrl.startsWith("https://") || !downloadUrl.toLowerCase(Locale.US).contains(".apk")) {
+            showDownloadError("The update URL is not a secure APK link.");
+            return;
+        }
+        downloadCancelled = false;
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(48, 8, 48, 8);
@@ -126,7 +134,9 @@ public class MainActivity extends Activity {
     }
 
     private void downloadExecutorCancel() {
-        // The active connection will be released when the activity is destroyed or the download ends.
+        downloadCancelled = true;
+        HttpURLConnection connection = activeDownload;
+        if (connection != null) connection.disconnect();
     }
 
     private void downloadApk(String downloadUrl) {
@@ -134,6 +144,7 @@ public class MainActivity extends Activity {
         File partialApk = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "neon-orbit-update.apk.part");
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(downloadUrl).openConnection();
+            activeDownload = connection;
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(15000);
             connection.setInstanceFollowRedirects(true);
@@ -148,6 +159,7 @@ public class MainActivity extends Activity {
                 byte[] buffer = new byte[8192];
                 int read;
                 while ((read = input.read(buffer)) != -1) {
+                    if (downloadCancelled) throw new Exception("Update cancelled");
                     output.write(buffer, 0, read);
                     downloaded += read;
                     int percent = total > 0 ? (int) ((downloaded * 100) / total) : 0;
@@ -157,17 +169,28 @@ public class MainActivity extends Activity {
                 }
             } finally {
                 connection.disconnect();
+                activeDownload = null;
             }
+            if (downloadCancelled) throw new Exception("Update cancelled");
             if (partialApk.length() < 4 || !isZipApk(partialApk)) {
                 partialApk.delete();
                 throw new Exception("The update URL did not return a valid APK file");
             }
-            if (apk.exists()) apk.delete();
-            if (!partialApk.renameTo(apk)) throw new Exception("Could not prepare the APK installer file");
-            mainHandler.post(() -> installDownloadedApk(apk));
+            // Swap atomically as far as the app's private storage allows, keeping a rollback copy.
+            File backupApk = new File(apk.getParentFile(), "neon-orbit-update.apk.bak");
+            if (backupApk.exists()) backupApk.delete();
+            boolean movedOld = apk.exists() && apk.renameTo(backupApk);
+            if (!partialApk.renameTo(apk)) {
+                if (movedOld) backupApk.renameTo(apk);
+                throw new Exception("Could not prepare the APK installer file");
+            }
+            if (backupApk.exists()) backupApk.delete();
+            mainHandler.post(() -> {
+                if (!isFinishing() && !isDestroyed()) installDownloadedApk(apk);
+            });
         } catch (Exception error) {
             if (partialApk.exists()) partialApk.delete();
-            mainHandler.post(() -> showDownloadError(error.getMessage()));
+            if (!downloadCancelled) mainHandler.post(() -> showDownloadError(error.getMessage()));
         }
     }
 
@@ -187,17 +210,24 @@ public class MainActivity extends Activity {
 
     private void installDownloadedApk(File apk) {
         if (downloadDialog != null) downloadDialog.dismiss();
-        Uri apkUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
-        Intent install = new Intent(Intent.ACTION_VIEW, apkUri);
-        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(install);
+        try {
+            Uri apkUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
+            Intent install = new Intent(Intent.ACTION_VIEW);
+            install.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(install);
+        } catch (Exception error) {
+            showDownloadError("Android could not open the downloaded installer. Please try the update again.");
+        }
     }
 
     private void showDownloadError(String message) {
         if (downloadDialog != null) downloadDialog.dismiss();
         new AlertDialog.Builder(this)
                 .setTitle("Update failed")
-                .setMessage("The update link did not provide a valid APK. Upload the real APK at the configured download URL, then try again.")
+                .setMessage(message == null || message.isEmpty()
+                        ? "The update could not be downloaded. Please try again later."
+                        : message)
                 .setPositiveButton("OK", null)
                 .show();
     }
@@ -208,6 +238,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        downloadExecutorCancel();
         if (gameView != null) gameView.destroy();
         updateExecutor.shutdownNow();
         super.onDestroy();
