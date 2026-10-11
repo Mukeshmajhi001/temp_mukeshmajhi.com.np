@@ -4,15 +4,27 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.content.pm.PackageInfo;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Environment;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import androidx.core.content.FileProvider;
 
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -25,6 +37,9 @@ public class MainActivity extends Activity {
     private final ExecutorService updateExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private WebView gameView;
+    private AlertDialog downloadDialog;
+    private ProgressBar downloadProgress;
+    private TextView downloadStatus;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -84,14 +99,86 @@ public class MainActivity extends Activity {
                 .setTitle("New update available")
                 .setMessage("Mukesh Majhi Neon Orbit " + versionName + " is ready. Update now for the latest version.")
                 .setNegativeButton("Later", null)
-                .setPositiveButton("Update now", (dialog, which) -> {
-                    try {
-                        startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse(downloadUrl)));
-                    } catch (Exception ignored) {
-                        // Keep the game open if no browser can handle the URL.
-                    }
-                })
+                .setPositiveButton("Update now", (dialog, which) -> startUpdateDownload(downloadUrl))
+                .show();
+    }
+
+    private void startUpdateDownload(String downloadUrl) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(48, 8, 48, 8);
+        downloadProgress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        downloadProgress.setMax(100);
+        downloadStatus = new TextView(this);
+        downloadStatus.setGravity(Gravity.CENTER);
+        downloadStatus.setText("Preparing update...");
+        layout.addView(downloadProgress, new LinearLayout.LayoutParams(-1, 24));
+        layout.addView(downloadStatus, new LinearLayout.LayoutParams(-1, 48));
+        downloadDialog = new AlertDialog.Builder(this)
+                .setTitle("Downloading update")
+                .setView(layout)
+                .setNegativeButton("Cancel", (dialog, which) -> downloadExecutorCancel())
+                .create();
+        downloadDialog.setCanceledOnTouchOutside(false);
+        downloadDialog.show();
+        updateExecutor.execute(() -> downloadApk(downloadUrl));
+    }
+
+    private void downloadExecutorCancel() {
+        // The active connection will be released when the activity is destroyed or the download ends.
+    }
+
+    private void downloadApk(String downloadUrl) {
+        File apk = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "neon-orbit-update.apk");
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(downloadUrl).openConnection();
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(15000);
+            connection.connect();
+            int total = connection.getContentLength();
+            long downloaded = 0;
+            try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(apk)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, read);
+                    downloaded += read;
+                    int percent = total > 0 ? (int) ((downloaded * 100) / total) : 0;
+                    long progressDownloaded = downloaded;
+                    int progressTotal = total;
+                    mainHandler.post(() -> updateDownloadProgress(percent, progressDownloaded, progressTotal));
+                }
+            } finally {
+                connection.disconnect();
+            }
+            mainHandler.post(() -> installDownloadedApk(apk));
+        } catch (Exception error) {
+            mainHandler.post(() -> showDownloadError(error.getMessage()));
+        }
+    }
+
+    private void updateDownloadProgress(int percent, long downloaded, int total) {
+        if (downloadProgress == null || downloadStatus == null) return;
+        downloadProgress.setProgress(percent);
+        String downloadedMb = String.format(java.util.Locale.US, "%.1f MB", downloaded / 1048576f);
+        String totalMb = total > 0 ? String.format(java.util.Locale.US, " / %.1f MB", total / 1048576f) : "";
+        downloadStatus.setText(percent + "%  •  " + downloadedMb + totalMb);
+    }
+
+    private void installDownloadedApk(File apk) {
+        if (downloadDialog != null) downloadDialog.dismiss();
+        Uri apkUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
+        Intent install = new Intent(Intent.ACTION_VIEW, apkUri);
+        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(install);
+    }
+
+    private void showDownloadError(String message) {
+        if (downloadDialog != null) downloadDialog.dismiss();
+        new AlertDialog.Builder(this)
+                .setTitle("Update failed")
+                .setMessage("The update could not be downloaded. Please try again later.")
+                .setPositiveButton("OK", null)
                 .show();
     }
 
