@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,13 +13,16 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <main class="shell">
-    <header class="topbar"> 
-      <div class="brand"><span class="brand-mark">✦</span><span>PULSE <b>WEAVER</b></span></div>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">✦</span><span>Mukesh <b>Majhi</b></span></div>
       <div class="status"><span class="live-dot"></span> SIGNAL ONLINE</div>
       <button class="icon-btn" id="pauseBtn" aria-label="Pause game">Ⅱ</button>
     </header>
@@ -34,7 +38,9 @@
         </div>
         <div class="meter-label"><span>CORE INTEGRITY</span><span id="integrityText">100%</span></div>
         <div class="meter"><i id="integrityBar"></i></div>
-        <div class="tip"><span class="tip-icon">⌁</span><p>Collect cyan sparks to weave your orbit. Near misses charge your next pulse.</p></div>
+        <div class="tip"><span class="tip-icon">⌁</span>
+          <p>Collect cyan sparks to weave your orbit. Near misses charge your next pulse.</p>
+        </div>
       </aside>
 
       <div class="board-frame">
@@ -48,11 +54,14 @@
           <small>WASD / ARROW KEYS / MOUSE / TOUCH</small>
         </div>
         <div class="overlay hidden" id="pauseOverlay">
-          <div class="overlay-kicker">SIGNAL FROZEN</div><h2>PAUSED</h2><p>Your orbit is waiting.</p>
+          <div class="overlay-kicker">SIGNAL FROZEN</div>
+          <h2>PAUSED</h2>
+          <p>Your orbit is waiting.</p>
           <button class="primary-btn" id="resumeBtn">RESUME <span>→</span></button>
         </div>
         <div class="overlay hidden" id="gameOverOverlay">
-          <div class="overlay-kicker">SIGNAL LOST</div><h2>THE HUNTERS<br><em>FOUND YOU.</em></h2>
+          <div class="overlay-kicker">SIGNAL LOST</div>
+          <h2>THE HUNTERS<br><em>FOUND YOU.</em></h2>
           <p>Final score <strong id="finalScore">0</strong></p>
           <button class="primary-btn" id="restartBtn">TRY AGAIN <span>↻</span></button>
         </div>
@@ -63,8 +72,15 @@
         <div class="pulse-ring"><span id="pulseNumber">0</span><small>PULSE</small></div>
         <div class="charge-label"><span>PULSE CHARGE</span><span id="chargeText">0 / 5</span></div>
         <div class="meter violet"><i id="chargeBar"></i></div>
-        <div class="legend"><div><i class="dot cyan"></i>SPARK</div><div><i class="dot coral"></i>HUNTER</div><div><i class="dot white"></i>CORE</div></div>
-        <div class="controls"><span>QUICK CONTROLS</span><p><kbd>SPACE</kbd> Pulse burst</p><p><kbd>ESC</kbd> Pause run</p></div>
+        <div class="legend">
+          <div><i class="dot cyan"></i>SPARK</div>
+          <div><i class="dot coral"></i>HUNTER</div>
+          <div><i class="dot white"></i>CORE</div>
+        </div>
+        <div class="controls"><span>QUICK CONTROLS</span>
+          <p><kbd>SPACE</kbd> Pulse burst</p>
+          <p><kbd>ESC</kbd> Pause run</p>
+        </div>
       </aside>
     </section>
 
@@ -77,4 +93,5 @@
     }
   </script>
 </body>
+
 </html>
