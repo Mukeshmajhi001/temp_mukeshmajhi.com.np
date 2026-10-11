@@ -4,7 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#070b18" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Pulse Weaver — Neon Orbit Game</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +17,7 @@
 </head>
 <body>
   <main class="shell">
-    <header class="topbar">
+    <header class="topbar"> 
       <div class="brand"><span class="brand-mark">✦</span><span>PULSE <b>WEAVER</b></span></div>
       <div class="status"><span class="live-dot"></span> SIGNAL ONLINE</div>
       <button class="icon-btn" id="pauseBtn" aria-label="Pause game">Ⅱ</button>
@@ -66,5 +71,10 @@
     <footer><span>© 2026 PULSE LABS</span><span>EVERY ORBIT LEAVES A TRACE</span><span>v1.0.0</span></footer>
   </main>
   <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
+    }
+  </script>
 </body>
 </html>

@@ -1,0 +1,20 @@
+{
+  "name": "Pulse Weaver — Neon Orbit Game",
+  "short_name": "Pulse Weaver",
+  "description": "Catch sparks, evade hunters and build your pulse.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070b18",
+  "theme_color": "#070b18",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
