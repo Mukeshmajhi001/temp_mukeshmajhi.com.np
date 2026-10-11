@@ -3,8 +3,10 @@ package com.mukeshmajhi.neonorbit;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
-import android.content.Intent;
-import android.net.Uri;
+import android.content.pm.PackageInfo;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -22,15 +24,24 @@ public class MainActivity extends Activity {
     private static final String UPDATE_URL = "https://mukeshmajhi.com.np/app-update.json";
     private final ExecutorService updateExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private WebView gameView;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        openGame();
         checkForUpdate();
     }
 
     private void openGame() {
-        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GAME_URL)));
-        finish();
+        gameView = new WebView(this);
+        WebSettings settings = gameView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        gameView.setWebViewClient(new WebViewClient());
+        gameView.loadUrl(GAME_URL);
+        setContentView(gameView);
     }
 
     private void checkForUpdate() {
@@ -45,22 +56,26 @@ public class MainActivity extends Activity {
                     String line;
                     while ((line = reader.readLine()) != null) body.append(line);
                     JSONObject update = new JSONObject(body.toString());
-                    int latestVersionCode = update.optInt("versionCode", BuildConfig.VERSION_CODE);
+                    int installedVersionCode = getInstalledVersionCode();
+                    int latestVersionCode = update.optInt("versionCode", installedVersionCode);
                     String downloadUrl = update.optString("downloadUrl", GAME_URL);
                     String versionName = update.optString("versionName", "new version");
-                    if (latestVersionCode > BuildConfig.VERSION_CODE) {
+                    if (latestVersionCode > installedVersionCode) {
                         mainHandler.post(() -> showUpdateDialog(versionName, downloadUrl));
-                    } else {
-                        mainHandler.post(this::openGame);
                     }
                 } finally {
                     connection.disconnect();
                 }
             } catch (Exception ignored) {
                 // Update checks must never stop the game from opening offline.
-                mainHandler.post(this::openGame);
             }
         });
+    }
+
+    @SuppressWarnings("deprecation")
+    private int getInstalledVersionCode() throws Exception {
+        PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+        return info.versionCode;
     }
 
     private void showUpdateDialog(String versionName, String downloadUrl) {
@@ -68,13 +83,25 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle("New update available")
                 .setMessage("Mukesh Majhi Neon Orbit " + versionName + " is ready. Update now for the latest version.")
-                .setNegativeButton("Later", (dialog, which) -> openGame())
-                .setPositiveButton("Update now", (dialog, which) ->
-                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl))))
+                .setNegativeButton("Later", null)
+                .setPositiveButton("Update now", (dialog, which) -> {
+                    try {
+                        startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(downloadUrl)));
+                    } catch (Exception ignored) {
+                        // Keep the game open if no browser can handle the URL.
+                    }
+                })
                 .show();
     }
 
+    @Override public void onBackPressed() {
+        if (gameView != null && gameView.canGoBack()) gameView.goBack();
+        else super.onBackPressed();
+    }
+
     @Override protected void onDestroy() {
+        if (gameView != null) gameView.destroy();
         updateExecutor.shutdownNow();
         super.onDestroy();
     }
