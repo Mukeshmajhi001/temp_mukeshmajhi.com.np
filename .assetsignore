@@ -1,0 +1,6 @@
+.git/
+.codex/
+.agents/
+.aws/
+README.md
+wrangler.toml
